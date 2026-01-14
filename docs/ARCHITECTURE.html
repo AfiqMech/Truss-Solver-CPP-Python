@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Truss Solver - Architecture</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f8fafc; color: #0f172a; padding: 2rem; max-width: 1000px; margin: 0 auto; }
+        h1 { text-align: center; color: #334155; }
+        h2 { margin-top: 3rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; color: #475569; }
+        .diagram-card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); margin: 2rem 0; }
+        p { color: #64748b; margin-bottom: 1.5rem; }
+    </style>
+</head>
+<body>
+
+    <h1>🏗️ Truss Solver Logic Flow</h1>
+    <p style="text-align: center;">How the Python UI and C++ Engine work together.</p>
+
+    <h2>Phase 1: Python Input (Giving Data to C++)</h2>
+    <p>This phase runs <strong>BEFORE</strong> the calculations start. It gathers your inputs and packages them.</p>
+    <div class="diagram-card">
+        <pre class="mermaid">
+graph TD
+    classDef ui fill:#0ea5e9,stroke:#333,stroke-width:2px,color:white;
+    classDef process fill:#f59e0b,stroke:#333,stroke-width:2px,color:white;
+    classDef action fill:#10b981,stroke:#333,stroke-width:2px,color:white,shape:rect;
+
+    Start((Start)):::action
+    
+    subgraph "1. User Input (app.py)"
+        UI_Joints[Line 460: User edits Joints Table]:::ui
+        UI_Beams[Line 495: User edits Beams Table]:::ui
+        UI_Loads[Line 517: User edits Loads Table]:::ui
+    end
+    
+    subgraph "2. Packaging Data (app.py)"
+        ProcessNodes[Line 535: Convert Table to List]:::process
+        ProcessBeams[Line 560: Convert Table to List]:::process
+        Strings[Line 566: Create JSON String]:::process
+    end
+    
+    subgraph "3. Sending to C++ (app.py)"
+        ClickRun[Line 583: Click RUN Button]:::action
+        Pipe[Line 600: SEND String to C++]:::action
+    end
+
+    Start --> UI_Joints
+    UI_Joints --> UI_Beams
+    UI_Beams --> UI_Loads
+    UI_Loads --> ClickRun
+    ClickRun --> ProcessNodes
+    ProcessNodes --> ProcessBeams
+    ProcessBeams --> Strings
+    Strings --> Pipe
+    Pipe --> End((To C++)):::action
+        </pre>
+    </div>
+
+    <h2>Phase 2: C++ Engine (Doing the Work)</h2>
+    <p>This phase runs <strong>INSIDE</strong> the C++ program (`TrussSolver.exe`). Python is paused while this happens.</p>
+    <div class="diagram-card">
+        <pre class="mermaid">
+graph TD
+    classDef purple fill:#bd52c7,stroke:#333,stroke-width:2px,color:white;
+    classDef decision fill:#6d28d9,stroke:#333,stroke-width:2px,color:white,shape:diamond;
+    classDef startend fill:#db2777,stroke:#333,stroke-width:2px,color:white,rx:10,ry:10;
+
+    Start((From Python)):::startend
+    
+    subgraph "1. Read & Build (TrussSolver.cpp)"
+        Input[Line 50: Scan JSON Text]:::purple
+        Matrix[Line 98: Build Matrices]:::purple
+        BC[Line 133: Apply Supports]:::purple
+    end
+    
+    subgraph "2. Calculate (TrussSolver.cpp)"
+        Solve[Line 141: Solve Equations]:::purple
+        
+        LoopStart{Each Member}:::decision
+        CalcForce[Line 161: Calc Force]:::purple
+        TypeCheck{Force > 0?}:::decision
+        Tension[Tension]:::purple
+        Compression[Compression]:::purple
+    end
+    
+    subgraph "3. Reply (TrussSolver.cpp)"
+        Output[Line 178: Print JSON Result]:::purple
+    end
+    
+    Start --> Input
+    Input --> Matrix
+    Matrix --> BC
+    BC --> Solve
+    Solve --> LoopStart
+    
+    LoopStart --> CalcForce
+    CalcForce --> TypeCheck
+    TypeCheck -->|Yes| Tension
+    TypeCheck -->|No| Compression
+    Tension --> LoopStart
+    Compression --> LoopStart
+    
+    LoopStart -->|Done| Output
+    Output --> End((To Python)):::startend
+        </pre>
+    </div>
+
+    <h2>Phase 3: Python Output (Displaying Results)</h2>
+    <p>This phase runs <strong>AFTER</strong> C++ finishes and gives back the answer.</p>
+    <div class="diagram-card">
+        <pre class="mermaid">
+graph TD
+    classDef ui fill:#0ea5e9,stroke:#333,stroke-width:2px,color:white;
+    classDef process fill:#f59e0b,stroke:#333,stroke-width:2px,color:white;
+    classDef action fill:#10b981,stroke:#333,stroke-width:2px,color:white,shape:rect;
+
+    Start((From C++)):::action
+    
+    subgraph "1. Receive & Save (app.py)"
+        Receive[Line 600: Receive JSON String]:::action
+        Save[Line 602: Save 'output.json']:::process
+    end
+    
+    subgraph "2. Read & Check (app.py)"
+        Reload[Line 604: Reload Page]:::process
+        Read[Line 609: Read 'output.json']:::process
+        Status[Line 611: Check Stability]:::process
+    end
+    
+    subgraph "3. Visualize (app.py)"
+        Graph[Line 575: Draw Bridge Graph]:::ui
+        Table[Line 650: Show Numbers Table]:::ui
+    end
+
+    Start --> Receive
+    Receive --> Save
+    Save --> Reload
+    Reload -.->|New Load| Read
+    Read --> Status
+    Status --> Graph
+    Status --> Table
+        </pre>
+    </div>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true });
+    </script>
+</body>
+</html>

@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Truss Solver - Complete Python Guide</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --accent: #3b82f6;
+            --text: #334155;
+            --code-bg: #0d1117;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+        .container { max-width: 1300px; margin: 0 auto; }
+        
+        /* Typography */
+        h1 { font-size: 3rem; color: #0f172a; margin: 0; text-align: center; }
+        p.subtitle { font-size: 1.2rem; color: #64748b; text-align: center; margin-bottom: 3rem; }
+        
+        /* Layout Grid */
+        .chapter-title {
+            margin: 4rem 0 1.5rem 0;
+            font-size: 1.8rem;
+            color: #1e293b;
+            border-bottom: 2px solid #cbd5e1;
+            padding-bottom: 0.5rem;
+        }
+
+        .lesson-block {
+            display: grid;
+            grid-template-columns: 40% 60%;
+            gap: 0; /* Seamless connection */
+            background: var(--card);
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2.5rem;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .explanation {
+            padding: 2rem;
+            background: #fff;
+            border-right: 1px solid #e2e8f0;
+        }
+        .code-panel {
+            background: var(--code-bg);
+            padding: 1.5rem;
+            overflow: auto;
+            max-height: 500px;
+        }
+        
+        /* Explanation Styling */
+        .explanation h3 {
+            margin-top: 0;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .badge {
+            background: #eff6ff;
+            color: #2563eb;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border: 1px solid #bfdbfe;
+        }
+        
+        /* Code Styling */
+        pre { margin: 0; }
+        code { font-family: 'Consolas', monospace; font-size: 0.85rem; }
+
+        @media (max-width: 1024px) {
+            .lesson-block { grid-template-columns: 1fr; }
+            .explanation { border-right: none; border-bottom: 1px solid #e2e8f0; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div style="text-align: center; margin-bottom: 1rem;">
+            <span style="background: #e0f2fe; color: #0284c7; padding: 0.5rem 1rem; border-radius: 99px; font-weight: bold; font-size: 0.9rem;">PART 1 OF 2</span>
+        </div>
+        <h1>🐍 Python: The Architect</h1>
+        <p class="subtitle">Managing the User & The Data</p>
+    </header>
+
+    <!-- CHAPTER 1 -->
+    <div class="chapter-title">Chapter 1: The Foundations</div>
+
+    <div class="lesson-block">
+        <div class="explanation">
+            <h3><span class="badge">Line 1-10</span> Imports & Configuration</h3>
+            <p><strong>The Toolbox:</strong> Before we build anything, we grab our tools.</p>
+            <ul>
+                <li><code>streamlit</code>: The library that makes the website.</li>
+                <li><code>subprocess</code>: The tool that runs the C++ engine.</li>
+                <li><code>pandas</code>: The library for the Excel-like tables.</li>
+                <li><code>plotly</code>: The library for the interactive charts.</li>
+            </ul>
+        </div>
+        <div class="code-panel">
+            <pre><code class="language-python">import streamlit as st
+import subprocess
+import os
+import json
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+
+# Set page title to "Truss Solver" and "Wide Mode"
+st.set_page_config(page_title="Truss Solver", layout="wide")</code></pre>
+        </div>
+    </div>
+
+    <div class="lesson-block">
+        <div class="explanation">
+            <h3><span class="badge">Line 13-29</span> memory (Session State)</h3>
+            <p><strong>The Ram:</strong> Websites usually "forget" everything when you click a button. </p>
+            <p>This block creates a permanent memory storage called <code>defaults</code> that survives page reloads.</p>
+            <p>It creates the <strong>Default Bridge</strong> (The square shape you see when you first load the app).</p>
+        </div>
+        <div class="code-panel">
+            <pre><code class="language-python"># Default Data (The Square Bridge)
+defaults = {
+    "node_data": pd.DataFrame([
+        {"Joint #": 1, "X (m)": 0.0, "Y (m)": 0.0, ...},
+        {"Joint #": 2, "X (m)": 4.0, "Y (m)": 0.0, ...},
+        ...
+    ]),
+    "beam_data": pd.DataFrame([ ... ]),
+    ...
+}
+
+# Only set if not already set (Don't overwrite user work)
+for k,v in defaults.items(): 
+    if k not in st.session_state: st.session_state[k] = v</code></pre>
+        </div>
+    </div>
+
+    <!-- CHAPTER 2 -->
+    <div class="chapter-title">Chapter 2: The Visualizer (The Hard Part)</div>
+
+    <div class="lesson-block">
+        <div class="explanation">
+            <h3><span class="badge">Line 34-64</span> Reading Files</h3>
+            <p><strong>The Blueprint Reader:</strong> This function <code>draw_bridge</code> is responsible for drawing the graph.</p>
+            <p>First, it must safely open the JSON files. If a file is missing (or corrupt), it gracefully returns <code>None</code> to prevent a crash.</p>
+        </div>
+        <div class="code-panel">
+            <pre><code class="language-python">def draw_bridge(input_path, output_path, ...):
+    # Try to open Input (Geometry)
+    try:
+        with open(input_path, 'r') as file: bridge_data = json.load(file)
+    except: return None
+    
+    # Try to open Output (Results) - Optional
+    if output_path and os.path.exists(output_path):
+        # ... load results ...</code></pre>
+        </div>
+    </div>
+
+    <div class="lesson-block">
+        <div class="explanation">
+            <h3><span class="badge">Line 93-138</span> Drawing Arrows</h3>
+            <p><strong>The Artist:</strong> Drawing an arrow in math code is surprisingly hard.</p>
+            <p>This helper function calculates trigonometry (<code>sin/cos</code>) to draw the arrowhead at the perfect angle.</p>
+            <p>It creates <strong>3 Layers</strong> for every arrow to make it look "glowing" and high-contrast on any background.</p>
+        </div>
+        <div class="code-panel">
+            <pre><code class="language-python">def add_trace_arrow(...):
+    # Calculate angle of line
+    angle = np.arctan2(end_y - start_y, end_x - start_x)
+    
+    # Layer 1: Dark Shadow (Black border)
+    fig.add_trace(go.Scatter(..., line=dict(color=dark_c)))
+    
+    # Layer 2: White Glow
+    fig.add_trace(go.Scatter(..., line=dict(color='white')))
+    
+    # Layer 3: The Color (Red/Blue/Green)
+    fig.add_trace(go.Scatter(..., line=dict(color=color)))</code></pre>
+        </div>
+    </div>
+
+    <!-- CHAPTER 3 -->
+    <div class="chapter-title">Chapter 3: The User Interface (UI)</div>
+
+    <div class="lesson-block">
+        <div class="explanation">
+            <h3><span class="badge">Line 387-402</span> CSS Styling</h3>
+            <p><strong>The Decorator:</strong> This injects raw CSS code into the webpage to make the buttons look premium.</p>
+            <p>It overrides the default "Streamlit Look" with custom rounded corners, shadows, and gradients.</p>
+        </div>
+        <div class="code-panel">
+            <pre><code class="language-python">st.write("""
+    <style>
+    div.stButton > button[kind="primary"] {
+        background: linear-gradient(45deg, #ff6e40, #ff5722) !important;
+        border-radius: 12px !important;
+        box-shadow: 0 8px 16px rgba(255, 110, 64, 0.3) !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)</code></pre>
+        </div>
+    </div>
+
+    <div class="lesson-block">
+        <div class="explanation">
+            <h3><span class="badge">Line 452</span> The 3 Columns</h3>
+            <p><strong>The Layout:</strong> This single line creates the 3-column layout that defines the app.</p>
+            <p>We then use <code>with col_joints:</code> to put the Data Editor table inside that specific column.</p>
+        </div>
+        <div class="code-panel">
+            <pre><code class="language-python">st.header("Define Your Bridge Geometry & Physics")
+
+# Create 3 Columns
+col_joints, col_beams, col_loads = st.columns(3, gap="medium")
+
+# Column 1
+with col_joints:
+    render_card_header("", "Joints", 1)
+    # The editable table
+    edited_nodes = st.data_editor(...)</code></pre>
+        </div>
+    </div>
+
+    <!-- CHAPTER 4 -->
+    <div class="chapter-title">Chapter 4: The Logic (Connecting Everything)</div>
+
+    <div class="lesson-block">
+        <div class="explanation">
+            <h3><span class="badge">Line 535</span> Processing Input</h3>
+            <p><strong>The Translator:</strong> The table data comes in as messy text or pandas objects.</p>
+            <p>We need to loop through it and convert it into clean Numbers (Floats/Ints) that C++ can understand.</p>
+            <p>We also convert human text like "Pinned Support" into computer logic (Fixed X = True).</p>
+        </div>
+        <div class="code-panel">
+            <pre><code class="language-python"># Loop through the table
+for idx, x, y, stype in zip(edited_nodes["Joint #"], ...):
+    
+    # Logic: If pinned, lock X and Y
+    is_pinned = (stype == "Pinned Support")
+    
+    final_nodes_list.append({
+        "id": int(idx), 
+        "x": float(x), 
+        "y": float(y), 
+        "isFixedX": is_pinned
+    })</code></pre>
+        </div>
+    </div>
+
+    <div class="lesson-block">
+        <div class="explanation">
+            <h3><span class="badge">Line 600</span> The Handshake (communicate)</h3>
+            <p><strong>The Transaction:</strong> You noticed that both Sending and Receiving happen here.</p>
+            <p><code>p.communicate()</code> is a <strong>Blocking Call</strong>. It says:</p>
+            <ol>
+                <li>"Here is the input" (Sends `inp`).</li>
+                <li>"I will now freeze and wait."</li>
+                <li>"Okay, I got the reply" (Returns `out`).</li>
+            </ol>
+            <p>It acts like a courier service that refuses to leave until it gets a signature return.</p>
+            <p style="margin-top: 1rem; padding: 0.5rem; background: rgba(59, 130, 246, 0.1); border-left: 3px solid #3b82f6; border-radius: 4px;">
+                <strong style="color: #60a5fa;">🔗 Connection Point:</strong> The data now travels to <strong>Chapter 1</strong> of the <a href="CPP_NOTES.html" style="color: #3b82f6; font-weight: bold;">C++ Lecture Notes</a>.
+            </p>
+        </div>
+        <div class="code-panel">
+            <pre><code class="language-python">if run_btn:
+    # Start the engine
+    p = subprocess.Popen([os.path.abspath("truss_engine.exe")], ...)
+    
+    # Send Input -> Get Output
+    out, err = p.communicate(input=inp)
+    
+    if p.returncode == 0:
+        # Save output to file
+        with open("data/output.json", "w") as f: f.write(out)
+        st.rerun() # Reload page to show graph</code></pre>
+        </div>
+    </div>
+
+</div>
+
+<!-- RESOURCES SECTION -->
+<div class="lesson-block" style="background: #f1f5f9; border: 2px dashed #94a3b8;">
+    <div class="explanation" style="width: 100%; border: none;">
+        <h3><span class="badge" style="background: #64748b; color: white; border: none;">📚</span> Further Reading & References</h3>
+        <p>Don't take my word for it. Here are the official manuals used to build this:</p>
+        <ul style="list-style: none; padding: 0;">
+            <li style="margin-bottom: 1rem;">
+                <a href="https://docs.streamlit.io/" target="_blank" style="text-decoration: none; color: #0f172a; font-weight: bold; display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 1.5rem;">👑</span> Streamlit Documentation
+                </a>
+                <span style="color: #64748b; font-size: 0.9rem; margin-left: 2rem; display: block;">Refer to: <em>Session State</em>, <em>Columns</em>, and <em>Data Editor</em>.</span>
+            </li>
+            <li style="margin-bottom: 1rem;">
+                <a href="https://plotly.com/python/line-charts/" target="_blank" style="text-decoration: none; color: #0f172a; font-weight: bold; display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 1.5rem;">📊</span> Plotly Graph Objects
+                </a>
+                <span style="color: #64748b; font-size: 0.9rem; margin-left: 2rem; display: block;">Learn how <code>go.Scatter</code> draws lines and shapes.</span>
+            </li>
+            <li style="margin-bottom: 1rem;">
+                <a href="https://docs.python.org/3/library/subprocess.html" target="_blank" style="text-decoration: none; color: #0f172a; font-weight: bold; display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 1.5rem;">🚇</span> Python Subprocess
+                </a>
+                <span style="color: #64748b; font-size: 0.9rem; margin-left: 2rem; display: block;">The manual for <code>Popen</code> and Pipes.</span>
+            </li>
+        </ul>
+    </div>
+</div>
+
+<div style="text-align: center; margin: 4rem 0;">
+    <a href="CPP_NOTES.html" style="display: inline-block; background: #3b82f6; color: white; padding: 1rem 2rem; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 1.2rem; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);">
+        👉 Go to Part 2: C++ Physics Engine
+    </a>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>hljs.highlightAll();</script>
+</body>
+</html>

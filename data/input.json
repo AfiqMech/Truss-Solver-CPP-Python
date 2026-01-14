@@ -1,0 +1,86 @@
+{
+  "nodes": [
+    {
+      "id": 1,
+      "x": 0.0,
+      "y": 0.0,
+      "isFixedX": "true",
+      "isFixedY": "true",
+      "loadX": 0.0,
+      "loadY": 0.0,
+      "type": "Pinned Support"
+    },
+    {
+      "id": 2,
+      "x": 4.0,
+      "y": 0.0,
+      "isFixedX": "false",
+      "isFixedY": "false",
+      "loadX": -9.184850993605149e-12,
+      "loadY": -50000.0,
+      "type": "Free Joint"
+    },
+    {
+      "id": 3,
+      "x": 8.0,
+      "y": 0.0,
+      "isFixedX": "false",
+      "isFixedY": "true",
+      "loadX": 0.0,
+      "loadY": 0.0,
+      "type": "Roller Support"
+    },
+    {
+      "id": 4,
+      "x": 4.0,
+      "y": 4.0,
+      "isFixedX": "false",
+      "isFixedY": "false",
+      "loadX": 0.0,
+      "loadY": 0.0,
+      "type": "Free Joint"
+    }
+  ],
+  "elements": [
+    {
+      "id": 1,
+      "start": 1,
+      "end": 2,
+      "E": 200000000000.0,
+      "A": 0.0015,
+      "yield": 250000000.0
+    },
+    {
+      "id": 2,
+      "start": 2,
+      "end": 3,
+      "E": 200000000000.0,
+      "A": 0.0015,
+      "yield": 250000000.0
+    },
+    {
+      "id": 3,
+      "start": 1,
+      "end": 4,
+      "E": 200000000000.0,
+      "A": 0.0015,
+      "yield": 250000000.0
+    },
+    {
+      "id": 4,
+      "start": 2,
+      "end": 4,
+      "E": 200000000000.0,
+      "A": 0.0015,
+      "yield": 250000000.0
+    },
+    {
+      "id": 5,
+      "start": 4,
+      "end": 3,
+      "E": 200000000000.0,
+      "A": 0.0015,
+      "yield": 250000000.0
+    }
+  ]
+}

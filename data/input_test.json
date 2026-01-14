@@ -1,0 +1,11 @@
+{
+  "nodes": [
+    { "id": 1, "x": 0.0, "y": 0.0, "loadX": 0.0, "loadY": 0.0, "isFixedX": "true", "isFixedY": "true" },
+    { "id": 2, "x": 4.0, "y": 0.0, "loadX": 0.0, "loadY": -50000.0, "isFixedX": "false", "isFixedY": "false" },
+    { "id": 3, "x": 8.0, "y": 0.0, "loadX": 0.0, "loadY": 0.0, "isFixedX": "false", "isFixedY": "true" }
+  ],
+  "elements": [
+    { "id": 1, "start": 1, "end": 2, "E": 200000000000.0, "A": 0.005, "yield": 250000000.0 },
+    { "id": 2, "start": 2, "end": 3, "E": 200000000000.0, "A": 0.005, "yield": 250000000.0 }
+  ]
+}

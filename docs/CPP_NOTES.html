@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Truss Solver - C++ Math & Physics</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <!-- MathJax for BEAUTIFUL Equations -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root {
+            --bg: #0f172a; /* Dark Tech Background for C++ */
+            --card: #1e293b;
+            --accent: #f43f5e; /* Rose/Red for Math/Physics */
+            --text: #e2e8f0;
+            --code-bg: #0d1117;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+        .container { max-width: 1300px; margin: 0 auto; }
+        
+        h1 { font-size: 3rem; color: #fff; margin: 0; text-align: center; }
+        p.subtitle { font-size: 1.2rem; color: #94a3b8; text-align: center; margin-bottom: 3rem; }
+        
+        /* Cheat Sheet Section */
+        .cheat-sheet {
+            background: #334155;
+            padding: 2rem;
+            border-radius: 16px;
+            margin-bottom: 4rem;
+            border: 2px solid var(--accent);
+            box-shadow: 0 0 20px rgba(244, 63, 94, 0.2);
+        }
+        .cheat-sheet h2 { color: var(--accent); text-align: center; margin-top: 0; text-transform: uppercase; letter-spacing: 2px; }
+        .formula-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; }
+        .formula-card { background: #1e293b; padding: 1rem; border-radius: 8px; text-align: center; }
+        .formula-name { color: #94a3b8; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 0.5rem; }
+
+        /* Lesson Blocks */
+        .chapter-title {
+            margin: 4rem 0 1.5rem 0;
+            font-size: 1.8rem;
+            color: #fff;
+            border-bottom: 2px solid #475569;
+            padding-bottom: 0.5rem;
+        }
+
+        .lesson-block {
+            display: grid;
+            grid-template-columns: 45% 55%;
+            gap: 0; 
+            background: var(--card);
+            border-radius: 12px;
+            margin-bottom: 2.5rem;
+            overflow: hidden;
+            border: 1px solid #334155;
+        }
+        
+        .explanation { padding: 2rem; border-right: 1px solid #334155; }
+        .code-panel { background: var(--code-bg); padding: 1.5rem; overflow: auto; max-height: 500px; }
+        
+        .explanation h3 { margin-top: 0; color: var(--accent); display: flex; align-items: center; gap: 0.75rem; }
+        .badge {
+            background: #4c0519; color: #fb7185;
+            padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; border: 1px solid #fb7185;
+        }
+        
+        pre { margin: 0; }
+        code { font-family: 'Consolas', monospace; font-size: 0.85rem; }
+
+        @media (max-width: 1024px) {
+            .lesson-block { grid-template-columns: 1fr; }
+            .explanation { border-right: none; border-bottom: 1px solid #334155; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div style="text-align: center; margin-bottom: 1rem;">
+            <a href="PYTHON_NOTES.html" style="color: #64748b; text-decoration: none; font-size: 0.9rem;">&larr; Back to Part 1: Python</a>
+            <span style="background: #334155; color: #f43f5e; padding: 0.5rem 1rem; border-radius: 99px; font-weight: bold; font-size: 0.9rem; margin-left: 1rem;">PART 2 OF 2</span>
+        </div>
+        <h1>⚙️ C++: The Engineer</h1>
+        <p class="subtitle">The Mathematics of <code>TrussSolver.cpp</code></p>
+    </header>
+
+    <!-- SECTION 0: FORMULA CHEAT SHEET -->
+    <div class="cheat-sheet">
+        <h2>📐 Formula Cheat Sheet</h2>
+        <div class="formula-grid">
+            <div class="formula-card">
+                <div class="formula-name">1. Hooke's Law (Spring Stiffness)</div>
+                <div>$$ F = k \cdot \Delta L $$</div>
+            </div>
+            <div class="formula-card">
+                <div class="formula-name">2. Stiffness Coefficient</div>
+                <div>$$ k = \frac{E \cdot A}{L} $$</div>
+            </div>
+            <div class="formula-card">
+                <div class="formula-name">3. Stress (Pressure)</div>
+                <div>$$ \sigma = \frac{F}{A} $$</div>
+            </div>
+            <div class="formula-card">
+                <div class="formula-name">4. Safety Factor</div>
+                <div>$$ FS = \frac{\text{Yield Strength}}{|\sigma|} $$</div>
+            </div>
+            <div class="formula-card">
+                <div class="formula-name">5. The Master Equation</div>
+                <div>$$ [K]\{U\} = \{F\} $$</div>
+            </div>
+            <div class="formula-card">
+                <div class="formula-name">6. Element Stiffness Matrix</div>
+                <div>$$ \begin{bmatrix} c^2 & cs \\ cs & s^2 \end{bmatrix} $$</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PART 0 -->
+    <div class="chapter-title">Part 0: The Basics (Language 101)</div>
+
+    <div class="lesson-block">
+        <div class="explanation">
+            <h3><span class="badge">Line 1-10</span> Imports & Namespaces</h3>
+            <p><strong>The Toolbox:</strong></p>
+            <ul>
+                <li><code>iostream</code>: Input/Output (Allows <code>cin</code> and <code>cout</code>).</li>
+                <li><code>vector</code>: List (A resizable array).</li>
+                <li><code>cmath</code>: Math (Sqrt, Sin, Cos).</li>
+                <li><code>Eigen/Dense</code>: The "Super Calculator" library for Matrix math.</li>
+            </ul>
+        </div>
+        <div class="code-panel">
+            <pre><code class="language-cpp">#include &lt;iostream&gt;
+#include &lt;vector&gt;
+#include &lt;cmath&gt;
+#include &lt;Eigen/Dense&gt; // The Matrix Library
+
+using namespace std;   // So we can type 'cout' instead of 'std::cout'
+using namespace Eigen; // So we can type 'MatrixXd' instead of 'Eigen::MatrixXd'</code></pre>
+        </div>
+    </div>
+
+    <div class="lesson-block">
+        <div class="explanation">
+            <h3>Part 1: Data Structures (The "Digital Twin")</h3>
+            <p>Before the computer can calculate stress or displacement, it needs a way to store the bridge's properties. We use two custom "containers" (structs) to represent the physical components.</p>
+            
+            <h4>1. The Node Struct (The Joints)</h4>
+            <p>The Node represents every point where beams meet or where the bridge touches the ground.</p>
+            <ul>
+                <li><strong>Coordinates (x, y):</strong> These define the exact location of the joint in 2D space.</li>
+                <li><strong>Loads (appliedForceX/Y):</strong> These store the external weight or forces acting on that specific joint.</li>
+                <li><strong>Boundary Conditions (isFixedX/Y):</strong> These are "flags" (true/false) that tell the computer if a joint is bolted to the ground and cannot move.</li>
+                <li><strong>Result Placeholders:</strong> Variables like <code>displacement</code> and <code>reaction</code> are empty at the start and will be filled by the solver later.</li>
+            </ul>
+
+            <h4>2. The Beam Struct (The Members)</h4>
+            <p>The Beam represents the actual physical trusses connecting the nodes.</p>
+            <ul>
+                <li><strong>Connectivity (startNodeID, endNodeID):</strong> This tells the computer which two joints the beam is connected to.</li>
+                <li><strong>Material Properties (E, A, yield):</strong> These define how stiff the beam is (Young's Modulus), its thickness (Area), and its breaking point (Yield Strength).</li>
+                <li><strong>Calculated Data:</strong> Fields like <code>length</code>, <code>internalForce</code>, and <code>safetyFactor</code> are used to store the engineering analysis results.</li>
+            </ul>
+        </div>
+        <div class="code-panel">
+            <pre><code class="language-cpp">// 1. NODE (The Joint)
+struct Node {
+    int id;
+    double x, y;
+    double loadX, loadY;
+    bool fixX, fixY;
+    double dispX, dispY; // Results
+};
+
+// 2. BEAM (The Connection)
+struct Beam {
+    int startID, endID;
+    double E, A;         // Material
+    double length;       // Geometry
+    double stress;       // Result
+};</code></pre>
+        </div>
+    </div>
+
+    <div class="lesson-block">
+        <div class="explanation">
+            <h3><span class="badge">Line 1-10</span> Arrays vs. Eigen</h3>
+            <p><strong>The Math Problem:</strong> C++ Arrays (`std::vector`) are dumb.</p>
+            <ul>
+                <li>If you have a list <code>[1, 2]</code> and try to multiply by 2...</li>
+                <li><strong>C++ Array says:</strong> "Error! I don't know math."</li>
+                <li><strong>Eigen says:</strong> "Easy! The answer is <code>[2, 4]</code>."</li>
+            </ul>
+            <p>We use <strong>Eigen</strong> because it turns C++ into a super-calculator.</p>
+        </div>
+        <div class="code-panel">
+            <pre><code class="language-cpp">// 1. Standard C++ List (std::vector)
+// Good for STORAGE, bad for MATH
+vector&lt;double&gt; v = {1.0, 2.0};
+// v = v * 2;  <-- ERROR! Computer crashes.
+
+// 2. Eigen Vector (Eigen::VectorXd)
+// Good for MATH
+VectorXd v(2);
+v << 1.0, 2.0;
+v = v * 2;     // <-- SUCCESS! Result: {2.0, 4.0}
+
+// We use Eigen to solve [K]{U} = {F}</code></pre>
+        </div>
+    </div>
+
+    <div class="lesson-block">
+        <div class="explanation">
+            <h3><span class="badge">Line 30-42</span> The Helper (extractValue)</h3>
+            <p><strong>The Parser:</strong> You asked specifically about this block.</p>
+            <p>C++ doesn't "know" JSON. We built this manual function to find text.</p>
+            <p><strong>Logic:</strong></p>
+            <ol>
+                <li><code>block.find(searchKey)</code>: Looks for <code>"x":</code>.</li>
+                <li><code>block.find(",", start)</code>: Looks for the comma <code>,</code> at the end of the number.</li>
+                <li><code>block.substr(...)</code>: Cuts out the text between them (e.g., "4.0").</li>
+            </ol>
+            <p>It's like doing "Ctrl+F" in code.</p>
+        </div>
+        <div class="code-panel">
+            <pre><code class="language-cpp">// Helper: Find a value inside a messy string
+string extractValue(string block, string key) {
+    string searchKey = "\"" + key + "\":";
+    
+    // 1. Where does the key start?
+    size_t start = block.find(searchKey); 
+    if (start == string::npos) return ""; // Not found
+    
+    // 2. Skip past the key itself
+    start += searchKey.length(); 
+    
+    // 3. Find where the value ends (comma or brace)
+    size_t end = block.find_first_of(",}", start);
+    
+    // 4. Return the slice in between
+    return block.substr(start, end - start);
+}</code></pre>
+        </div>
+    </div>
+
+    <!-- CHAPTER 1: INPUT -->
+    <div class="chapter-title">Part 2: Step 1 – The Data Pipeline & Conversion</div>
+
+    <div class="lesson-block">
+        <div class="explanation">
+            <h3><span class="badge">Line 49-89</span> The "Handshake"</h3>
+            <p>This step handles reading the input and translating it from text (JSON) into numbers (C++ Structs).</p>
+
+            <h4>1. Reading the "Stream" (std::cin)</h4>
+            <p>The C++ program listens to the data "pipeline" coming from Python. The source of this data is the <strong><code>data/input.json</code></strong> file (shown in your folder structure).</p>
+            <p>It uses a <code>while</code> loop with <code>getline</code> to read every line of text sent by Python and saves it into one long string called <code>jsonInput</code>.</p>
+
+            <h4>2. Splitting the JSON "Wall of Text"</h4>
+            <p>To make the data easier to manage, the code uses <code>find()</code> and <code>substr()</code> to cut the big text string into two smaller "chunks":</p>
+            <ul>
+                <li><code>nodesChunk</code>: Everything inside the <code>"nodes": [...]</code> list.</li>
+                <li><code>elementsChunk</code>: Everything inside the <code>"elements": [...]</code> list.</li>
+            </ul>
+
+            <h4>3. The Search Engine (extractValue Helper)</h4>
+            <p>Since C++ cannot read JSON files natively, we use a Helper Function to "clip" out specific values. It searches for these exact keys:</p>
+            <ul>
+                <li><strong>Node Data:</strong> <code>"id"</code>, <code>"x"</code>, <code>"y"</code>, <code>"loadX"</code>, <code>"loadY"</code>, <code>"fixX"</code>, <code>"fixY"</code>.</li>
+                <li><strong>Beam Data:</strong> <code>"from"</code>, <code>"to"</code>, <code>"E"</code>, <code>"A"</code>, <code>"yield"</code>.</li>
+            </ul>
+
+            <h4>4. The Conversion (stoi and stod)</h4>
+            <p>The values found by the helper are still just "Text" (e.g., "10.5"). To perform math, we convert them:</p>
+            <ul>
+                <li><code>stoi</code> (String to Integer): Converts IDs and Node numbers.</li>
+                <li><code>stod</code> (String to Double): Converts coordinates, forces, and material properties into high-precision decimal numbers.</li>
+            </ul>
+
+            <h4>5. Storage (push_back)</h4>
+            <p>Once a Node or Beam is fully "translated" from text to numbers, it is added to a list (<code>vector</code>). By the end of Step 1, the program has two complete lists: <code>allNodes</code> and <code>allBeams</code>.</p>
+        </div>
+        <div class="code-panel">
+            <pre><code class="language-cpp">// 1. SOURCE: data/input.json (via Python Pipe)
+while (getline(cin, line)) { jsonInput += line; }
+
+// 2. SEARCH & EXTRACT
+// "x": 4.0  ->  EXTRACT "4.0"
+string val = extractValue(block, "x");
+
+// 3. CONVERT & SAVE
+Node n;
+n.x = stod(val); // "4.0" -> 4.0 
+allNodes.push_back(n);</code></pre>
+        </div>
+    </div>
+
+    <!-- PART 2: STEP 2 -->
+    <div class="chapter-title">Part 2: Step 2 – Physics (The Matrix)</div>
+
+    <div class="lesson-block">
+        <div class="explanation">
+            <h3><span class="badge">Line 112-114</span> Geometry</h3>
+            <p><strong>Pythagoras:</strong> We calculate the length and angle of every beam.</p>
+            <p>$$ L = \sqrt{\Delta x^2 + \Delta y^2} $$</p>
+            <p>$$ \cos\theta = \frac{\Delta x}{L}, \quad \sin\theta = \frac{\Delta y}{L} $$</p>
+            <p><small><em>Units: Length ($L$) is in Meters ($m$).</em></small></p>
+        </div>
+        <div class="code-panel">
+            <pre><code class="language-cpp">double dx = e.xCoordinate - s.xCoordinate;
+double dy = e.yCoordinate - s.yCoordinate;
+
+beam.length = sqrt(dx*dx + dy*dy);
+
+beam.cosineTheta = dx / beam.length;
+beam.sineTheta = dy / beam.length;</code></pre>
+        </div>
+    </div>
+
+    <div class="lesson-block">
+        <div class="explanation">
+            <h3><span class="badge">Line 117-125</span> Stiffness Matrix</h3>
+            <p><strong>The Core Physics:</strong> We calculate $k$ (Spring Constant).</p>
+            <p>$$ k = \frac{E \cdot A}{L} $$</p>
+            <ul>
+                <li><strong>$E$</strong> = Young's Modulus ($Pa$ or $N/m^2$)</li>
+                <li><strong>$A$</strong> = Cross-Section Area ($m^2$)</li>
+                <li><strong>$L$</strong> = Length ($m$)</li>
+                <li><strong>$c$</strong> = $\cos\theta$ (Horizontal Angle)</li>
+                <li><strong>$sT$</strong> = $\sin\theta$ (Vertical Angle)</li>
+            </ul>
+        </div>
+        <div class="code-panel">
+            <pre><code class="language-cpp">// Stiffness Factor k
+double k = (beam.youngsModulus * beam.crossSectionArea) / beam.length;
+
+// 4x4 Element Stiffness Matrix
+Matrix4d localK;
+localK <<  c*c,   c*sT,  -c*c,  -c*sT, 
+           c*sT,  sT*sT, -c*sT, -sT*sT, 
+           -c*c,  -c*sT,   c*c,   c*sT, 
+           -c*sT, -sT*sT,  c*sT,  sT*sT;</code></pre>
+        </div>
+    </div>
+
+    <!-- PART 2: STEP 3 -->
+    <div class="chapter-title">Part 2: Step 3 – Solving (Linear Algebra)</div>
+
+    <div class="lesson-block">
+        <div class="explanation">
+            <h3><span class="badge">Line 141-155</span> Step 3: Solving the System</h3>
+            <p>Once the Global Stiffness Matrix ($K$) and Force Vector ($F$) are assembled, the program must solve for the unknown Displacements ($U$).</p>
+            
+            <h4>1. The Mathematical Foundation</h4>
+            <p>The core of Finite Element Analysis (FEA) is solving the linear system:</p>
+            <p>$$ K \cdot U = F $$</p>
+            <ul>
+                <li><strong>$K$ (Stiffness):</strong> A square matrix representing how the entire structure resists deformation.</li>
+                <li><strong>$F$ (Force):</strong> A vector containing all external loads (gravity, wind, etc.).</li>
+                <li><strong>$U$ (Displacement):</strong> The unknown vector we need to find.</li>
+            </ul>
+
+            <h4>2. The Solver: FullPivLU</h4>
+            <p>The program uses the Eigen C++ Library's <code>FullPivLU</code> solver. This method is chosen for its high precision and stability:</p>
+            <ul>
+                <li><strong>LU Decomposition:</strong> It "splits" the complex $K$ matrix into two simpler triangular matrices: $L$ (Lower) and $U$ (Upper).</li>
+                <li><strong>Full Pivoting:</strong> The solver reorders rows and columns to find the largest numerical values ("pivots") to divide by. This prevents tiny rounding errors from ruining the results.</li>
+            </ul>
+
+            <h4>3. Stability & Invertibility Check</h4>
+            <p>Before calculating results, the code performs a critical safety check:</p>
+            <p><code>if (!solver.isInvertible())</code></p>
+            <ul>
+                <li><strong>Invertible:</strong> If the matrix is invertible, the structure is stable.</li>
+                <li><strong>Singular (Not Invertible):</strong> If the solver detects a zero on the diagonal, it means the structure is unstable (a "mechanism" or "floating"). The code returns "unstable".</li>
+            </ul>
+
+            <h4>4. Forward and Back Substitution</h4>
+            <ul>
+                <li><strong>Forward Substitution ($L \cdot y = F$):</strong> Pushes forces through $L$ to find intermediate vector $y$.</li>
+                <li><strong>Back Substitution ($U \cdot u = y$):</strong> "Zips up" from the bottom to find final displacements $u$.</li>
+            </ul>
+
+            <h4>5. Mapping the Vector to Reality</h4>
+            <p>We "unpack" the vector back into the Node objects:</p>
+            <ul>
+                <li><code>GlobalU(2 * i)</code>: Horizontal (X) displacement for Node $i$.</li>
+                <li><code>GlobalU(2 * i + 1)</code>: Vertical (Y) displacement for Node $i$.</li>
+            </ul>
+        </div>
+        <div class="code-panel">
+            <pre><code class="language-cpp">// Create Solver
+FullPivLU&lt;MatrixXd&gt; solver(GlobalK);
+
+// Instability Check
+if (!solver.isInvertible()) { 
+    cout << "{\"status\":\"unstable\"}"; 
+    return 0; 
+}
+
+// Solve for U (Displacements)
+VectorXd GlobalU = solver.solve(GlobalF);</code></pre>
+        </div>
+    </div>
+
+    <!-- PART 2: STEP 5 -->
+    <div class="chapter-title">Part 2: Step 5 – The Output Pipeline & Final Report</div>
+
+    <div class="lesson-block">
+        <div class="explanation">
+            <h3><span class="badge">Line 160-170</span> 1. The Safety Filter (Auto SN)</h3>
+            <p><strong>The Problem:</strong> In engineering, dividing by zero (e.g., if a beam has no force) creates "Infinity" or "NaN" (Not a Number). This crashes the Python visualizer.</p>
+            <p><strong>The Solution:</strong> We create a "Lambda Function" (mini-helper) called <code>sn</code> (Safe Number). It filters every value:</p>
+            <ul>
+                <li>If the number is Good: Keep it.</li>
+                <li>If the number is Broken (NaN/Inf): <strong>Force it to 0.0</strong>.</li>
+            </ul>
+        </div>
+        <div class="code-panel">
+            <pre><code class="language-cpp">// Safety Filter Macro (Lambda)
+auto sn = [](double v) { 
+    if (std::isnan(v) || std::isinf(v)) return 0.0;
+    return v;
+};
+
+// Use it like this:
+// double safeValue = sn(dangerousCalculation);</code></pre>
+        </div>
+    </div>
+
+    <div class="lesson-block">
+        <div class="explanation">
+            <h3><span class="badge">Line 178-180</span> 2. Building the JSON "Envelope"</h3>
+            <p>The program uses <code>std::cout</code> to print results directly to the system pipeline.</p>
+            <p>It manually prints the JSON structure: <code>{"status":"success", ...}</code>.</p>
+            <p>This acts like an <strong>Envelope</strong>, telling Python: "The calculation was successful; here are the results."</p>
+        </div>
+        <div class="code-panel">
+            <pre><code class="language-cpp">// Print the JSON Envelope
+cout << "{\"status\":\"success\",\"nodes\":[";</code></pre>
+        </div>
+    </div>
+
+    <div class="lesson-block">
+        <div class="explanation">
+            <h3><span class="badge">Line 183-189</span> 3. Node Results (Displacement)</h3>
+            <p>The code loops through the <code>allNodes</code> list and prints:</p>
+            <ul>
+                <li><strong>ux & uy:</strong> The final horizontal and vertical movement (Displacement) of each joint. Python uses this to draw the "bent" shape.</li>
+                <li><strong>rx & ry:</strong> Support Reactions. The force the ground pushes back with.</li>
+            </ul>
+        </div>
+        <div class="code-panel">
+            <pre><code class="language-cpp">// Loop Nodes
+for (const auto& n : allNodes) {
+    cout << "{\"id\":" << n.id 
+         << ",\"ux\":" << sn(n.dispX) 
+         << ",\"uy\":" << sn(n.dispY) 
+         << "},";
+}</code></pre>
+        </div>
+    </div>
+
+    <div class="lesson-block">
+        <div class="explanation">
+            <h3><span class="badge">Line 192-198</span> 4. Element Results (Stress & Safety)</h3>
+            <p>The code loops through <code>allBeams</code> to report structure health:</p>
+            <ul>
+                <li><strong>force:</strong> Total internal tension/compression (Newtons).</li>
+                <li><strong>stress:</strong> Internal pressure (Force / Area).</li>
+                <li><strong>safety:</strong> Factor of Safety. <strong>Crucial:</strong> If this is < 1.0, the beam breaks.</li>
+            </ul>
+        </div>
+        <div class="code-panel">
+            <pre><code class="language-cpp">// Loop Beams
+for (const auto& b : allBeams) {
+    cout << "{\"id\":" << i 
+         << ",\"force\":" << sn(b.internalForce)
+         << ",\"stress\":" << sn(b.stress)
+         << ",\"safety\":" << sn(b.safetyFactor)
+         << "},";
+}
+cout << "]}"; // Close JSON</code></pre>
+        </div>
+    </div>
+
+</div>
+
+<!-- RESOURCES SECTION -->
+<div class="lesson-block" style="background: #1e293b; border: 2px dashed #475569;">
+    <div class="explanation" style="width: 100%; border: none;">
+        <h3><span class="badge" style="background: #334155; color: #94a3b8; border: none;">📚</span> Engineering References</h3>
+        <p>To truly understand the "Black Box" math, you need these resources:</p>
+        <ul style="list-style: none; padding: 0;">
+            <li style="margin-bottom: 1rem;">
+                <a href="https://eigen.tuxfamily.org/dox/group__TutorialMatrixClass.html" target="_blank" style="text-decoration: none; color: #e2e8f0; font-weight: bold; display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 1.5rem;">🔢</span> Eigen Library Documentation
+                </a>
+                <span style="color: #94a3b8; font-size: 0.9rem; margin-left: 2.5rem; display: block;">The bible for C++ Matrix Algebra.</span>
+            </li>
+            <li style="margin-bottom: 1rem;">
+                <a href="https://en.wikipedia.org/wiki/Direct_stiffness_method" target="_blank" style="text-decoration: none; color: #e2e8f0; font-weight: bold; display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 1.5rem;">🏗️</span> The Direct Stiffness Method
+                </a>
+                <span style="color: #94a3b8; font-size: 0.9rem; margin-left: 2.5rem; display: block;">Wikipedia assignment on how <code>[K]{U}={F}</code> actually works.</span>
+            </li>
+            <li style="margin-bottom: 1rem;">
+                <a href="https://en.cppreference.com/w/cpp/container/vector" target="_blank" style="text-decoration: none; color: #e2e8f0; font-weight: bold; display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="font-size: 1.5rem;">📘</span> C++ Reference (std::vector)
+                </a>
+                <span style="color: #94a3b8; font-size: 0.9rem; margin-left: 2.5rem; display: block;">Official docs for vectors, maps, and strings.</span>
+            </li>
+        </ul>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>hljs.highlightAll();</script>
+</body>
+</html>

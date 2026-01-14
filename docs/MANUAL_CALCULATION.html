@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Truss Solver - Manual Calculation Example</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script>
+      window.MathJax = {
+        tex: {
+          inlineMath: [['$', '$'], ['\\(', '\\)']]
+        }
+      };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        :root {
+            --bg: #fffffe;
+            --text: #2d334a;
+            --accent: #ffd803;
+            --card-bg: #e3f6f5;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 2rem;
+            line-height: 1.6;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h1, h2, h3 { color: #272343; }
+        h1 { text-align: center; font-size: 2.5rem; margin-bottom: 0.5rem; }
+        .subtitle { text-align: center; color: #5f6c7b; margin-bottom: 3rem; }
+        
+        .step-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .step-number {
+            background: #272343;
+            color: white;
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+        
+        .math-block {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            border-left: 4px solid #3b82f6;
+            margin: 1rem 0;
+        }
+
+        .highlight-box {
+            background: #ffffd1;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #eab308;
+            margin-top: 1rem;
+        }
+
+        img { max-width: 100%; display: block; margin: 1rem auto; }
+        
+        table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+        th, td { border: 1px solid #cbd5e1; padding: 0.5rem; text-align: center; }
+        th { background: #f1f5f9; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>✏️ The Hand-Calculation Example</h1>
+        <p class="subtitle">A full manual walkthrough of the Direct Stiffness Method.</p>
+    </header>
+
+    <!-- STEP 1: PROBLEM SETUP -->
+    <div class="step-card">
+        <span class="step-number">STEP 1</span>
+        <h2>The Problem: A Simple Triangle Truss</h2>
+        <p>We will solve a standard 3-bar triangle manually. This matches the "Triangle" example often seen in textbooks and the default app setup.</p>
+        
+        <div class="grid-2">
+            <div>
+                <h3>1. Geometry (Nodes)</h3>
+                <ul>
+                    <li><strong>Node 1 (0,0):</strong> Pinned Support ($u_1=0, v_1=0$)</li>
+                    <li><strong>Node 2 (4,0):</strong> Roller Support ($v_2=0$)</li>
+                    <li><strong>Node 3 (2,3):</strong> Free Node (Top Apex)</li>
+                </ul>
+
+                <h3>2. Members (Beams)</h3>
+                <ul>
+                    <li><strong>Member 1 (1 &rarr; 2):</strong> Bottom Bar (Length 4m)</li>
+                    <li><strong>Member 2 (1 &rarr; 3):</strong> Left Diagonal (Length 3.61m)</li>
+                    <li><strong>Member 3 (2 &rarr; 3):</strong> Right Diagonal (Length 3.61m)</li>
+                </ul>
+
+                <h3>3. Loads</h3>
+                <ul>
+                    <li><strong>Force:</strong> 10 kN Downward at Node 3 ($F_{y3} = -10$)</li>
+                </ul>
+            </div>
+            <div>
+                <svg viewBox="-1 -1 6 5" style="width:100%; background:white; border-radius:8px;">
+                    <!-- Beams -->
+                    <line x1="0" y1="4" x2="4" y2="4" stroke="#e2e8f0" stroke-width="0.1"/>
+                    <line x1="0" y1="4" x2="2" y2="1" stroke="#3b82f6" stroke-width="0.15"/> <!-- 1-3 -->
+                    <line x1="4" y1="4" x2="2" y2="1" stroke="#3b82f6" stroke-width="0.15"/> <!-- 2-3 -->
+                    <line x1="0" y1="4" x2="4" y2="4" stroke="#3b82f6" stroke-width="0.15"/> <!-- 1-2 -->
+                    
+                    <!-- Nodes -->
+                    <circle cx="0" cy="4" r="0.2" fill="#1e293b"/>
+                    <circle cx="4" cy="4" r="0.2" fill="#1e293b"/>
+                    <circle cx="2" cy="1" r="0.2" fill="#ef4444"/>
+
+                    <!-- Labels (Inverted Y for SVG) -->
+                    <text x="0" y="4.5" font-size="0.3" fill="black">1 (Pin)</text>
+                    <text x="4" y="4.5" font-size="0.3" fill="black">2 (Roller)</text>
+                    <text x="2" y="0.8" font-size="0.3" fill="red">3 (Load)</text>
+                </svg>
+            </div>
+        </div>
+        <!-- RESULT BLOCK -->
+        <div style="background:#f0f9ff; border-left:5px solid #0ea5e9; padding:15px; margin:20px 0;">
+            <strong>Final Displacements (m):</strong>
+            <ul>
+                <li>$u_2$ (Node 2 Slide) = $0.00133$ m (1.33 mm Right)</li>
+                <li>$u_3$ (Top Sway) = $0.00067$ m (0.67 mm Right)</li>
+                <li>$v_3$ (Top Drop) = $-0.00305$ m (3.05 mm Down)</li>
+            </ul>
+        </div> $E = 200 \times 10^9$ Pa, $A = 0.005$ m$^2$. <br>
+            <strong>Stiffness Factor (EA):</strong> $EA = 1,000,000$ kN (Normalized to 10,000 for simplicity).
+        </div>
+    </div>
+
+    <!-- STEP 2: ELEMENT STIFFNESS MATRICES -->
+    <div class="step-card">
+        <span class="step-number">STEP 2</span>
+        <h2>Element Stiffness Matrices</h2>
+        <div style="background-color: #f0fdf4; color: #15803d; padding: 4px 12px; border-radius: 99px; display: inline-block; font-size: 0.8em; margin-bottom: 1em; font-family: monospace; border: 1px solid #15803d;">
+            Reference: src/TrussSolver.cpp (Lines 116-125)
+        </div>
+        <p>For every bar, we calculate a local stiffness matrix $[k]$.</p>
+        <p>Formula: $$ k = \frac{EA}{L} \begin{bmatrix} c^2 & cs & -c^2 & -cs \\ cs & s^2 & -cs & -s^2 \\ -c^2 & -cs & c^2 & cs \\ -cs & -s^2 & cs & s^2 \end{bmatrix} $$</p>
+
+        <div style="background: #f0f9ff; border-left: 5px solid #0284c7; padding: 1rem; margin-bottom: 2rem;">
+            <h3>The Golden Rule of Numbering</h3>
+            <p>You asked: <em>"How to determine the numbering?"</em></p>
+            <p>Every beam has a <strong>Start Node</strong> and an <strong>End Node</strong>.</p>
+            <ul>
+                <li><strong>Rows 1 & 2</strong> always belong to the <strong>Start Node</strong> ($u_{start}, v_{start}$).</li>
+                <li><strong>Rows 3 & 4</strong> always belong to the <strong>End Node</strong> ($u_{end}, v_{end}$).</li>
+            </ul>
+        </div>
+
+                <li>$L = \sqrt{4^2 + 0^2} = 4.0$ m</li>
+                <li>$k_{factor} = \frac{EA}{L} = \frac{10000}{4.0} = \mathbf{2500}$</li>
+                <li>$c = 4/4 = 1, \quad s = 0/4 = 0$</li>
+                <li>$c^2 = 1, \quad s^2 = 0, \quad cs = 0$</li>
+            </ul>
+        </div>
+        
+        <div class="math-block" style="overflow-x:auto;">
+            <!-- Intermediate Substitution Step -->
+            <p style="text-align:center; font-family:monospace; margin-bottom: 5px;">
+                $$ [k]_1 = \mathbf{2500} \begin{bmatrix} 
+                1 & 0 & -1 & 0 \\ 
+                0 & 0 & 0 & 0 \\ 
+                -1 & 0 & 1 & 0 \\ 
+                0 & 0 & 0 & 0 
+                \end{bmatrix} $$
+            </p>
+            <div style="text-align:center; font-size:1.5rem; color:#64748b; margin: -10px 0 10px 0;">$\downarrow$</div>
+
+            <table class="matrix-table" style="font-family: monospace; font-size: 0.9rem; margin: 0 auto;">
+                <!-- Top Indices -->
+                <tr>
+                    <td></td> <!-- Left Index Column Spacer -->
+                    <td class="bracket-l" style="border:none;"></td> <!-- Bracket Spacer -->
+                    <td style="color:#ef4444; font-weight:bold; text-align:center;">1</td>
+                    <td style="color:#ef4444; font-weight:bold; text-align:center;">2</td>
+                    <td style="color:#ef4444; font-weight:bold; text-align:center;">3</td>
+                    <td style="color:#ef4444; font-weight:bold; text-align:center;">4</td>
+                    <td class="bracket-r" style="border:none;"></td> <!-- Bracket Spacer -->
+                </tr>
+                
+                <!-- Row 1 -->
+                <tr>
+                    <td style="color:#ef4444; font-weight:bold; padding-right:10px;">1</td>
+                    <td rowspan="4" class="bracket-l"></td>
+                    <td>2500</td> <td>0</td> <td>-2500</td> <td>0</td>
+                    <td rowspan="4" class="bracket-r"></td>
+                </tr>
+                <!-- Row 2 -->
+                <tr>
+                    <td style="color:#ef4444; font-weight:bold; padding-right:10px;">2</td>
+                    <td>0</td> <td>0</td> <td>0</td> <td>0</td>
+                </tr>
+                <!-- Row 3 -->
+                <tr>
+                    <td style="color:#ef4444; font-weight:bold; padding-right:10px;">3</td>
+                    <td>-2500</td> <td>0</td> <td>2500</td> <td>0</td>
+                </tr>
+                <!-- Row 4 -->
+                <tr>
+                    <td style="color:#ef4444; font-weight:bold; padding-right:10px;">4</td>
+                    <td>0</td> <td>0</td> <td>0</td> <td>0</td>
+                </tr>
+            </table>
+            <p style="text-align:center; font-size:0.8rem; color:#64748b; margin-top:5px;">(Indices: 1, 2, 3, 4)</p>
+        </div>
+
+        <h3>Member ② (Node 1 → 3)</h3>
+        <p><strong>Start: Node 1</strong> | <strong>End: Node 3</strong> | <strong>Indices: 1, 2, 5, 6</strong></p>
+        
+        <div style="background:#f8fafc; padding:10px; border:1px solid #e2e8f0; border-radius:6px; margin-bottom:10px; font-size:0.9rem;">
+            <strong>Step-by-Step Data:</strong>
+            <ul style="margin:5px 0 0 20px;">
+                <li>$L = 3.606$ m, $k_{factor} \approx \mathbf{2773}$</li>
+                <li>$c \approx 0.555, \quad s \approx 0.832$</li>
+            </ul>
+        </div>
+        
+        <div class="math-block" style="overflow-x:auto;">
+             <!-- Intermediate Substitution Step -->
+            <p style="text-align:center; font-family:monospace; margin-bottom: 5px;">
+                $$ [k]_2 = \mathbf{2773} \begin{bmatrix} 
+                0.308 & 0.461 & -0.308 & -0.461 \\ 
+                0.461 & 0.692 & -0.461 & -0.692 \\ 
+                -0.308 & -0.461 & 0.308 & 0.461 \\ 
+                -0.461 & -0.692 & 0.461 & 0.692 
+                \end{bmatrix} $$
+            </p>
+            <div style="text-align:center; font-size:1.5rem; color:#64748b; margin: -10px 0 10px 0;">$\downarrow$</div>
+
+             <table class="matrix-table" style="font-family: monospace; font-size: 0.9rem; margin: 0 auto;">
+                <!-- Top Indices -->
+                <tr>
+                    <td></td>
+                    <td class="bracket-l" style="border:none;"></td>
+                    <td style="color:#15803d; font-weight:bold; text-align:center;">1</td>
+                    <td style="color:#15803d; font-weight:bold; text-align:center;">2</td>
+                    <td style="color:#15803d; font-weight:bold; text-align:center;">5</td>
+                    <td style="color:#15803d; font-weight:bold; text-align:center;">6</td>
+                    <td class="bracket-r" style="border:none;"></td>
+                </tr>
+                <!-- Row 1 -->
+                <tr>
+                    <td style="color:#15803d; font-weight:bold; padding-right:10px;">1</td>
+                    <td rowspan="4" class="bracket-l"></td>
+                    <td>854</td> <td>1278</td> <td>-854</td> <td>-1278</td>
+                    <td rowspan="4" class="bracket-r"></td>
+                </tr>
+                <tr><td style="color:#15803d; font-weight:bold; padding-right:10px;">2</td><td>1278</td> <td>1919</td> <td>-1278</td> <td>-1919</td></tr>
+                <tr><td style="color:#15803d; font-weight:bold; padding-right:10px;">5</td><td>-854</td> <td>-1278</td> <td>854</td> <td>1278</td></tr>
+                <tr><td style="color:#15803d; font-weight:bold; padding-right:10px;">6</td><td>-1278</td> <td>-1919</td> <td>1278</td> <td>1919</td></tr>
+            </table>
+            <p style="text-align:center; font-size:0.8rem; color:#64748b; margin-top:5px;">(Indices: 1, 2, 5, 6)</p>
+        </div>
+
+        <h3>Member ③ (Node 2 → 3)</h3>
+        <p><strong>Start: Node 2</strong> | <strong>End: Node 3</strong> | <strong>Indices: 3, 4, 5, 6</strong></p>
+        
+        <div style="background:#f8fafc; padding:10px; border:1px solid #e2e8f0; border-radius:6px; margin-bottom:10px; font-size:0.9rem;">
+            <strong>Step-by-Step Data:</strong>
+            <ul style="margin:5px 0 0 20px;">
+                <li>$L = 3.606$ m, $k_{factor} \approx \mathbf{2773}$</li>
+                <li>$c \approx -0.555, \quad s \approx 0.832$</li>
+            </ul>
+        </div>
+        
+        <div class="math-block" style="overflow-x:auto;">
+             <!-- Intermediate Substitution Step -->
+            <p style="text-align:center; font-family:monospace; margin-bottom: 5px;">
+                $$ [k]_3 = \mathbf{2773} \begin{bmatrix} 
+                0.308 & -0.461 & -0.308 & 0.461 \\ 
+                -0.461 & 0.692 & 0.461 & -0.692 \\ 
+                -0.308 & 0.461 & 0.308 & -0.461 \\ 
+                0.461 & -0.692 & -0.461 & 0.692 
+                \end{bmatrix} $$
+            </p>
+            <div style="text-align:center; font-size:1.5rem; color:#64748b; margin: -10px 0 10px 0;">$\downarrow$</div>
+
+             <table class="matrix-table" style="font-family: monospace; font-size: 0.9rem; margin: 0 auto;">
+                <!-- Top Indices -->
+                <tr>
+                    <td></td>
+                    <td class="bracket-l" style="border:none;"></td>
+                    <td style="color:#b91c1c; font-weight:bold; text-align:center;">3</td>
+                    <td style="color:#b91c1c; font-weight:bold; text-align:center;">4</td>
+                    <td style="color:#b91c1c; font-weight:bold; text-align:center;">5</td>
+                    <td style="color:#b91c1c; font-weight:bold; text-align:center;">6</td>
+                    <td class="bracket-r" style="border:none;"></td>
+                </tr>
+                <!-- Rows -->
+                <tr><td style="color:#b91c1c; font-weight:bold; padding-right:10px;">3</td><td rowspan="4" class="bracket-l"></td><td>854</td> <td>-1278</td> <td>-854</td> <td>1278</td><td rowspan="4" class="bracket-r"></td></tr>
+                <tr><td style="color:#b91c1c; font-weight:bold; padding-right:10px;">4</td><td>-1278</td> <td>1919</td> <td>1278</td> <td>-1919</td></tr>
+                <tr><td style="color:#b91c1c; font-weight:bold; padding-right:10px;">5</td><td>-854</td> <td>1278</td> <td>854</td> <td>-1278</td></tr>
+                <tr><td style="color:#b91c1c; font-weight:bold; padding-right:10px;">6</td><td>1278</td> <td>-1919</td> <td>-1278</td> <td>1919</td></tr>
+            </table>
+            <p style="text-align:center; font-size:0.8rem; color:#64748b; margin-top:5px;">(Indices: 3, 4, 5, 6)</p>
+        </div>
+    </div>
+    </div>
+
+    <!-- STEP 3: GLOBAL ASSEMBLY -->
+    <div class="step-card">
+        <span class="step-number">STEP 3</span>
+        <h2>Global Matrix Assembly</h2>
+        
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <a href="https://www.youtube.com/watch?v=Y2dQPwgqNUY" target="_blank" style="background: #ef4444; color: white; padding: 0.75rem 1.5rem; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-flex; align-items: center; gap: 0.5rem;">
+                <svg style="width:20px;height:20px" fill="currentColor" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
+                Watch StructureFree Video
+            </a>
+            <p style="font-size: 0.85rem; color:#64748b; margin-top:0.4rem;">(We will follow this exact "Mapping Indices" method)</p>
+        </div>
+
+        <h3>1. Number the Global System</h3>
+        <p>First, we give each Degree of Freedom (DOF) a global number.</p>
+        
+        <div style="background: #f0f9ff; border-left: 5px solid #0284c7; padding: 1rem; margin-bottom: 1rem;">
+             <strong>The Rule:</strong> <em>"How to determine the numbering?"</em><br>
+             Since it's 2D, every Node has 2 numbers (X and Y).
+             <ul>
+                 <li><strong>Start at Node 1:</strong> Give it numbers 1, 2.</li>
+                 <li><strong>Go to Node 2:</strong> Give it numbers 3, 4.</li>
+                 <li><strong>Go to Node 3:</strong> Give it numbers 5, 6.</li>
+             </ul>
+             <p style="margin-top:0.5rem; font-size:0.9rem;">
+                 <em>Formula:</em><br>
+                 $DOF_x = 2 \times \text{Node} - 1$<br>
+                 $DOF_y = 2 \times \text{Node}$
+             </p>
+        </div>
+
+        <ul style="font-family: monospace; background: #f1f5f9; padding: 1rem; border-radius: 8px;">
+            <li>Node 1: DOFs <strong>1, 2</strong></li>
+            <li>Node 2: DOFs <strong>3, 4</strong></li>
+            <li>Node 3: DOFs <strong>5, 6</strong></li>
+        </ul>
+
+        <h3>2. Map Member Indices (The "Code Numbers")</h3>
+        <p>For each member, we list which Global DOFs correspond to its rows/cols.</p>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+            <div style="border: 1px solid #3b82f6; padding: 10px; border-radius: 6px; background: #eff6ff;">
+                <strong>Member 1</strong><br>
+                Node 1 $\to$ Node 2<br>
+                Indices: <span style="font-weight:bold; color:#1d4ed8;">1, 2, 3, 4</span>
+            </div>
+            <div style="border: 1px solid #166534; padding: 10px; border-radius: 6px; background: #f0fdf4;">
+                <strong>Member 2</strong><br>
+                Node 1 $\to$ Node 3<br>
+                Indices: <span style="font-weight:bold; color:#15803d;">1, 2, 5, 6</span>
+            </div>
+            <div style="border: 1px solid #b91c1c; padding: 10px; border-radius: 6px; background: #fef2f2;">
+                <strong>Member 3</strong><br>
+                Node 2 $\to$ Node 3<br>
+                Indices: <span style="font-weight:bold; color:#b91c1c;">3, 4, 5, 6</span>
+            </div>
+        </div>
+
+        <h3>3. Assemble Reduced Matrix</h3>
+        <p>Because the full $6 \times 6$ matrix is large, we solve the <strong>Reduced System</strong> by keeping only the "Free" Degrees of Freedom.</p>
+        <ul>
+            <li>Node 1 is Fixed ($u_1, v_1 = 0$). Remove Rows 0, 1.</li>
+            <li>Node 2 is Roller ($v_2 = 0$). Remove Row 3.</li>
+            <li><strong>Active DOFs:</strong> $u_2$ (Idx 2), $u_3$ (Idx 4), $v_3$ (Idx 5).</li>
+        </ul>
+
+        <div class="math-block" style="text-align:center;">
+             $$ [K_{red}] = \begin{bmatrix} 3354 & -854 & 1278 \\ -854 & 1708 & 0 \\ 1278 & 0 & 3838 \end{bmatrix} $$
+        </div>
+        <p><strong>Note:</strong> $K_{22}$ combines Mem 1 & 3. $K_{44}$ combines Mem 2 & 3.</p>
+        <p>We add the member contributions to their matching Global Index locations.</p>
+        
+        <table style="width:100%; border-collapse: collapse; text-align: center; font-size: 0.85rem;">
+            <tr style="background:#0f172a; color:white;">
+                <th style="padding:8px;">Global Index</th>
+                <th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th>
+            </tr>
+            <!-- ROW 1 -->
+            <tr>
+                <td style="font-weight:bold; background:#e2e8f0;">1</td>
+                <td>$k_{1(11)} + k_{2(11)}$<br><strong>3354</strong></td> 
+                <td>$k_{1(12)} + k_{2(12)}$<br><strong>1278</strong></td>
+                <td>-2500</td> 
+                <td>0</td>
+                <td>-854</td>
+                <td>-1278</td>
+            </tr>
+            <!-- ROW 2 -->
+            <tr>
+                <td style="font-weight:bold; background:#e2e8f0;">2</td>
+                <td>1278</td> 
+                <td>$k_{1(22)} + k_{2(22)}$<br><strong>1919</strong></td>
+                <td>0</td> 
+                <td>0</td>
+                <td>-1278</td>
+                <td>-1919</td>
+            </tr>
+            <!-- ROW 3 -->
+            <tr style="background:#fff7ed; border: 2px solid #ea580c;">
+                <td style="font-weight:bold; background:#e2e8f0;">3</td>
+                <td>-2500</td> 
+                <td>0</td>
+                <td style="font-weight:bold; color:#c2410c;">k1 + k3<br>2500+854<br>= 3354</td> 
+                <td>-1278</td>
+                <td>-854</td>
+                <td>1278</td>
+            </tr>
+            <!-- ROW 4 -->
+            <tr>
+                <td style="font-weight:bold; background:#e2e8f0;">4</td>
+                <td>0</td> <td>0</td>
+                <td>-1278</td> 
+                <td><strong>1919</strong></td>
+                <td>1278</td>
+                <td>-1919</td>
+            </tr>
+            <!-- ROW 5 -->
+            <tr>
+                <td style="font-weight:bold; background:#e2e8f0;">5</td>
+                <td>-854</td> <td>-1278</td>
+                <td>-854</td> 
+                <td>1278</td>
+                <td><strong>1708</strong></td>
+                <td>0</td>
+            </tr>
+            <!-- ROW 6 -->
+            <tr>
+                <td style="font-weight:bold; background:#e2e8f0;">6</td>
+                <td>-1278</td> <td>-1919</td>
+                <td>1278</td> 
+                <td>-1919</td>
+                <td>0</td>
+                <td><strong>3838</strong></td>
+            </tr>
+        </table>
+
+        <h3>Part 4: The Reduction (Applying Supports)</h3>
+        <p>You asked: <em>"Why are rows/cols removed (strikethrough)?"</em></p>
+        
+        <div style="background: #fef2f2; border-left: 5px solid #ef4444; padding: 1rem; margin-bottom: 2rem;">
+            <strong>THE CROSSHAIRS RULE (Symmetric Deletion)</strong>
+            <p>Because the matrix is symmetric ($K_{ij} = K_{ji}$), if a Node is fixed, we must delete <strong>BOTH</strong> its Row and its Column.</p>
+            <ul>
+                <li>Node 1 (Pin) is fixed in $x,y$ ($u_1, v_1=0$) $\to$ Delete <strong>Rows/Cols 1 & 2</strong>.</li>
+                <li>Node 2 (Roller) is fixed in $y$ ($v_2=0$) $\to$ Delete <strong>Row/Col 4</strong>.</li>
+            </ul>
+        </div>
+
+        <p>In our problem:</p>
+        <ul style="font-family: monospace;">
+            <li>Fixed: $u_1, v_1, v_2$. (Indices 1, 2, 4)</li>
+            <li><strong>Active ("Survivors"):</strong> $u_2$ (3), $u_3$ (5), $v_3$ (6).</li>
+        </ul>
+
+        <div style="text-align:center; padding: 1rem; background: #f0fdf4; border: 2px solid #166534; border-radius: 8px;">
+            <p><strong>The Survivors ("Green System"):</strong></p>
+            <p>
+                We keep indices 3, 5, 6. <br>
+                (Because 1, 2, 4 were deleted).
+            </p>
+            <div class="math-block" style="background:white; display:inline-block; padding:10px;">
+                $$ \begin{bmatrix} 
+                3353 & -853 & 1280 \\ 
+                -853 & 1707 & 0 \\ 
+                1280 & 0 & 3840 
+                \end{bmatrix} 
+                \begin{Bmatrix} u_2 \\ u_3 \\ v_3 \end{Bmatrix} 
+                = 
+                \begin{Bmatrix} 0 \\ 0 \\ -10 \end{Bmatrix}
+                $$
+            </div>
+            <p><i>Note: These values are calculated precisely ($EA/L$). Rounding may appear simpler in hand calcs.</i></p>
+        </div> 
+
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="step-card">
+        <span class="step-number">STEP 4</span>
+        <h2>The Solution (Matrix Reduction & Solver)</h2>
+        <div style="background-color: #f0fdf4; color: #15803d; padding: 4px 12px; border-radius: 99px; display: inline-block; font-size: 0.8em; margin-bottom: 1em; font-family: monospace; border: 1px solid #15803d;">
+            Reference: src/TrussSolver.cpp (lines 133-144)
+        </div>
+
+        <div class="math-block" style="font-family: monospace; font-size: 0.85rem; line-height: 1.2;">
+            <style>
+                .matrix-table { border-collapse: collapse; margin: 0 auto; }
+                .matrix-table td { padding: 8px 12px; border: 1px solid #ddd; position: relative; }
+                .del { background: #fee2e2; color: #ef4444; text-decoration: line-through; opacity: 0.5; }
+                .keep { background: #dcfce7; font-weight: bold; color: #166534; }
+                .bracket-l { border-left: 3px solid black; border-top: 3px solid black; border-bottom: 3px solid black; border-right: none; width: 10px; }
+                .bracket-r { border-right: 3px solid black; border-top: 3px solid black; border-bottom: 3px solid black; border-left: none; width: 10px; }
+            </style>
+            
+            <table class="matrix-table">
+                <tr><td colspan="8" style="text-align:center; border:none; padding-bottom:10px;"><strong>Global Stiffness Matrix [K]</strong></td></tr>
+                
+                <!-- ROW 1 -->
+                <tr>
+                    <td rowspan="6" class="bracket-l" style="border:none;"></td>
+                    <td class="del">K11</td> <td class="del">K12</td> <td class="del">K13</td> <td class="del">K14</td> <td class="del">K15</td> <td class="del">K16</td>
+                    <td rowspan="6" class="bracket-r" style="border:none;"></td>
+                    <td rowspan="6" style="border:none; padding:10px;">×</td>
+                    <td rowspan="6" class="bracket-l" style="border:none;"></td>
+                    <td class="del">u1</td>
+                    <td rowspan="6" class="bracket-r" style="border:none;"></td>
+                    <td rowspan="6" style="border:none; padding:10px;">=</td>
+                    <td rowspan="6" class="bracket-l" style="border:none;"></td>
+                    <td class="del">Rx</td>
+                    <td rowspan="6" class="bracket-r" style="border:none;"></td>
+                </tr>
+                
+                <!-- ROW 2 -->
+                <tr>
+                    <td class="del">K21</td> <td class="del">K22</td> <td class="del">K23</td> <td class="del">K24</td> <td class="del">K25</td> <td class="del">K26</td>
+                    <td class="del">v1</td>
+                    <td class="del">Ry</td>
+                </tr>
+                
+                <!-- ROW 3 (KEEP) -->
+                <tr>
+                    <td class="del">K31</td> <td class="del">K32</td> <td class="keep">K33</td> <td class="del">K34</td> <td class="keep">K35</td> <td class="keep">K36</td>
+                    <td class="keep">u2</td>
+                    <td class="keep">0</td>
+                </tr>
+                
+                <!-- ROW 4 -->
+                <tr>
+                    <td class="del">K41</td> <td class="del">K42</td> <td class="del">K43</td> <td class="del">K44</td> <td class="del">K45</td> <td class="del">K46</td>
+                    <td class="del">v2</td>
+                    <td class="del">Ry</td>
+                </tr>
+                
+                <!-- ROW 5 (KEEP) -->
+                <tr>
+                    <td class="del">K51</td> <td class="del">K52</td> <td class="keep">K53</td> <td class="del">K54</td> <td class="keep">K55</td> <td class="keep">K56</td>
+                    <td class="keep">u3</td>
+                    <td class="keep">0</td>
+                </tr>
+                
+                <!-- ROW 6 (KEEP) -->
+                <tr>
+                    <td class="del">K61</td> <td class="del">K62</td> <td class="keep">K63</td> <td class="del">K64</td> <td class="keep">K65</td> <td class="keep">K66</td>
+                    <td class="keep">v3</td>
+                    <td class="keep">-10</td>
+                </tr>
+            </table>
+            
+            <p style="text-align: center; margin-top: 1rem; color: #5f6c7b;">
+                <span style="background:#fee2e2; padding:2px 6px; border-radius:4px;">Red</span> = Deleted (Fixed) &nbsp;|&nbsp; 
+                <span style="background:#dcfce7; padding:2px 6px; border-radius:4px;">Green</span> = Active System
+            </p>
+        </div>
+
+        <div style="background: #e0e7ff; border-left: 5px solid #4338ca; padding: 1rem; margin-top: 2rem;">
+            <strong>Computer vs. Human (How C++ does it):</strong>
+            <p>Manually, we use <em>Cramer's Rule</em> or <em>Substitution</em>, which is fine for small $3 \times 3$ matrices.</p>
+            <p><strong>But for 1,000 nodes?</strong> That would take forever. The C++ solver uses <strong>LU Decomposition</strong>.</p>
+            <p>Here is the <strong>Exact Calculation</strong> for our matrix:</p>
+
+            <h3>1. LU Decomposition (Creating the Triangles)</h3>
+            <p>We perform <strong>Gaussian elimination</strong> to find the multipliers ($L$) and the upper triangle ($U$).</p>
+            
+            <div style="background: white; padding: 1.5rem; border-radius: 8px; border-left: 4px solid #f59e0b; margin-bottom: 1rem;">
+                <strong>1. Eliminate Column 1:</strong>
+                <ul style="list-style-type: none; padding-left: 0;">
+                    <li>• <strong>Pivot:</strong> 3353</li>
+                    <li>• <strong>Multiplier for Row 2 ($L_{21}$):</strong> $-853 / 3353 \approx \mathbf{-0.2544}$</li>
+                    <li>• <strong>Multiplier for Row 3 ($L_{31}$):</strong> $1280 / 3353 \approx \mathbf{0.3817}$</li>
+                    <li style="margin-top:0.5rem; color:#475569;"><em>New Row 2:</em> $1707 - (-0.2544 \times -853) \approx \mathbf{1490}$</li>
+                    <li style="color:#475569;"><em>New Row 3:</em> $0 - (0.3817 \times -853) \approx \mathbf{325.6}$ (and for last col: $3840 - (0.3817 \times 1280) \approx \mathbf{3351.4}$)</li>
+                </ul>
+
+                <strong>2. Eliminate Column 2:</strong>
+                <ul style="list-style-type: none; padding-left: 0;">
+                    <li>• <strong>New Pivot:</strong> 1490</li>
+                    <li>• <strong>Multiplier for Row 3 ($L_{32}$):</strong> $325.6 / 1490 \approx \mathbf{0.2185}$</li>
+                    <li style="margin-top:0.5rem; color:#475569;"><em>Final Row 3 ($U_{33}$):</em> $3351.4 - (0.2185 \times 325.6) \approx \mathbf{3280.3}$</li>
+                </ul>
+            </div>
+
+            <div style="display: flex; gap: 1rem; align-items: center; justify-content: center; margin: 1rem 0; overflow-x:auto;">
+                <!-- L Matrix -->
+                <div style="text-align: center;">
+                    <div style="font-family: monospace; background: white; padding: 10px; border-radius: 6px; border:1px solid #cbd5e1;">
+                        $$ [L] = \begin{bmatrix} 
+                        1 & 0 & 0 \\ 
+                        -0.2544 & 1 & 0 \\ 
+                        0.3817 & 0.2185 & 1 
+                        \end{bmatrix} $$
+                    </div>
+                </div>
+                
+                <div style="font-size: 1.5rem; color: #4338ca;">,</div>
+
+                <!-- U Matrix -->
+                <div style="text-align: center;">
+                    <div style="font-family: monospace; background: white; padding: 10px; border-radius: 6px; border:1px solid #cbd5e1;">
+                        $$ [U] = \begin{bmatrix} 
+                        3353 & -853 & 1280 \\ 
+                        0 & 1490 & 325.6 \\ 
+                        0 & 0 & 3280.3 
+                        \end{bmatrix} $$
+                    </div>
+                </div>
+            </div>
+
+            <h3>2. Forward Substitution ($L \cdot y = F$)</h3>
+            <div style="background: white; padding: 1rem; border-radius: 8px; font-family: monospace; border-left: 4px solid #3b82f6;">
+                <p>We solve from top to bottom to find the intermediate vector $y$.</p>
+                <div style="text-align:center; padding: 10px 0;">
+                    $$ 
+                    \begin{bmatrix} 
+                    1 & 0 & 0 \\ 
+                    -0.2544 & 1 & 0 \\ 
+                    0.3817 & 0.2185 & 1 
+                    \end{bmatrix} 
+                    \begin{Bmatrix} y_1 \\ y_2 \\ y_3 \end{Bmatrix} 
+                    = 
+                    \begin{Bmatrix} 0 \\ 0 \\ -10 \end{Bmatrix}
+                    $$
+                </div>
+                <ul>
+                    <li><strong>Row 1:</strong> $1 \cdot y_1 = 0 \implies \mathbf{y_1 = 0}$</li>
+                    <li><strong>Row 2:</strong> $-0.2544(0) + 1 \cdot y_2 = 0 \implies \mathbf{y_2 = 0}$</li>
+                    <li><strong>Row 3:</strong> $0.3817(0) + 0.2185(0) + 1 \cdot y_3 = -10 \implies \mathbf{y_3 = -10}$</li>
+                </ul>
+                <p style="color:#64748b; font-size:0.9em;">(Because the first two forces were zero, $y$ remains very simple in this specific case.)</p>
+            </div>
+
+            <h3>3. Back Substitution ($U \cdot u = y$)</h3>
+            <div style="background: white; padding: 1rem; border-radius: 8px; font-family: monospace; border-left: 4px solid #10b981; margin-top:1rem;">
+                <p>Now we find the actual displacements by solving from bottom to top.</p>
+                <div style="text-align:center; padding: 10px 0;">
+                    $$ 
+                    \begin{bmatrix} 
+                    3353 & -853 & 1280 \\ 
+                    0 & 1490 & 325.6 \\ 
+                    0 & 0 & 3280.3 
+                    \end{bmatrix} 
+                    \begin{Bmatrix} u_2 \\ u_3 \\ v_3 \end{Bmatrix} 
+                    = 
+                    \begin{Bmatrix} 0 \\ 0 \\ -10 \end{Bmatrix}
+                    $$
+                </div>
+                <ul>
+                    <li><strong>Bottom Row ($v_3$):</strong> $3280.3 \cdot v_3 = -10 \implies v_3 \approx \mathbf{-0.00305}$</li>
+                    
+                    <li><strong>Middle Row ($u_3$):</strong> $1490 \cdot u_3 + 325.6(-0.00305) = 0$ <br>
+                        $1490 \cdot u_3 - 0.993 = 0 \implies u_3 \approx \mathbf{0.00067}$</li>
+                    
+                    <li><strong>Top Row ($u_2$):</strong> $3353 \cdot u_2 - 853(0.00067) + 1280(-0.00305) = 0$ <br>
+                        $3353 \cdot u_2 - 0.572 - 3.904 = 0$ <br>
+                        $3353 \cdot u_2 = 4.476 \implies u_2 \approx \mathbf{0.00133}$</li>
+                </ul>
+            </div>
+        </div>
+
+    <!-- STEP 4: SOLVING -->
+    <div class="step-card">
+        <span class="step-number">STEP 4</span>
+        <h2>Final Displacements (Summary)</h2>
+        <div class="highlight-box">
+            <ul>
+                <li>$$ u_1 = 0, \quad v_1 = 0 \quad \text{(Fixed via Pin)} $$</li>
+                <li>$$ u_2 = \mathbf{+0.00133 \text{ m}} \quad \text{(Moves Right - Roller)} $$</li>
+                <li>$$ v_2 = 0 \quad \text{(Fixed via Roller)} $$</li>
+                <li>$$ u_3 = \mathbf{+0.00067 \text{ m}} \quad \text{(Moves Right - Load Point)} $$</li>
+                <li>$$ v_3 = \mathbf{-0.00305 \text{ m}} \quad \text{(Moves Down - Load Point)} $$</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- STEP 5: FINAL FORCES -->
+    <div class="step-card">
+        <span class="step-number">STEP 5</span>
+        <h2>Calculate Internal Forces</h2>
+        <div style="background-color: #f0fdf4; color: #15803d; padding: 4px 12px; border-radius: 99px; display: inline-block; font-size: 0.8em; margin-bottom: 1em; font-family: monospace; border: 1px solid #15803d;">
+            Reference: src/TrussSolver.cpp (lines 154-162)
+        </div>
+        
+        <div style="background: #f0f9ff; border-left: 5px solid #0284c7; padding: 1rem; margin-bottom: 2rem;">
+            <strong>The Formula:</strong><br>
+            To find the force, we first find how much the bar stretched ($\Delta L$).<br>
+            $$ \Delta L = (u_{end} - u_{start}) \cdot c + (v_{end} - v_{start}) \cdot s $$
+            $$ F = \frac{EA}{L} \times \Delta L $$
+        </div>
+
+        <!-- MEMBER 1 -->
+        <div class="data-block">
+            <h3>Member 1 (1-2) [Bottom]</h3>
+            <p><strong>From Step 2:</strong> $c = 1, \quad s = 0$. ($k_{fac} = 2500$)</p>
+            <p>$\Delta L = (u_2 - u_1)(1) + (v_2 - v_1)(0)$</p>
+            <p>$\qquad = (0.00133 - 0) = 0.00133$</p>
+            <p>$F = 2500 \times 0.00133 = \mathbf{+3.33 \text{ kN}}$</p>
+            <strong style="color:#0ea5e9;">TENSION (Pulling)</strong>
+        </div>
+
+        <!-- MEMBER 2 -->
+        <div class="data-block">
+            <h3>Member 2 (1-3) [Left Diag]</h3>
+            <p><strong>From Step 2:</strong> $c = 0.555, \quad s = 0.832$. ($k_{fac} = 2773$)</p>
+            <p>$\Delta L = (u_3 - u_1)(0.555) + (v_3 - v_1)(0.832)$</p>
+            <p>$\qquad = (0.00067)(0.555) + (-0.00305)(0.832)$</p>
+            <p>$\qquad \approx 0.00037 - 0.00254 = -0.00217$</p>
+            <p>$F = 2773 \times -0.00217 = \mathbf{-6.01 \text{ kN}}$</p>
+            <strong style="color:#f97316;">COMPRESSION (Pushing)</strong>
+        </div>
+
+        <!-- MEMBER 3 -->
+        <div class="data-block">
+            <h3>Member 3 (2-3) [Right Diag]</h3>
+            <p><strong>From Step 2:</strong> $c = -0.555, \quad s = 0.832$. ($k_{fac} = 2773$)</p>
+            <p>$\Delta L = (u_3 - u_2)(-0.555) + (v_3 - v_2)(0.832)$</p>
+            <p>$\qquad = (0.00067 - 0.00133)(-0.555) + (-0.00305 - 0)(0.832)$</p>
+            <p>$\qquad = (-0.00066)(-0.555) + (-0.00305)(0.832)$</p>
+            <p>$\qquad \approx 0.00037 - 0.00254 = -0.00217$</p>
+            <p>$F = 2773 \times -0.00217 = \mathbf{-6.01 \text{ kN}}$</p>
+            <strong style="color:#f97316;">COMPRESSION (Pushing)</strong>
+        </div>
+    </div>
+    </div>
+
+    <!-- STEP 6: REACTIONS -->
+    <div class="step-card">
+        <span class="step-number">STEP 6</span>
+        <h2>Calculate Support Reactions</h2>
+        <div style="background-color: #f0fdf4; color: #15803d; padding: 4px 12px; border-radius: 99px; display: inline-block; font-size: 0.8em; margin-bottom: 1em; font-family: monospace; border: 1px solid #15803d;">
+            Reference: src/TrussSolver.cpp (lines 170-171)
+        </div>
+
+        <div style="background: #f0f9ff; border-left: 5px solid #0284c7; padding: 1rem; margin-bottom: 2rem;">
+            <strong>The Formula:</strong><br>
+            A support must fight back against all internal forces pushing on it.<br>
+            $$ R_{x} = - \sum (F_{member} \cdot c) - F_{load\_x} $$
+            $$ R_{y} = - \sum (F_{member} \cdot s) - F_{load\_y} $$
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+            <div class="data-block">
+                <h3>Node 1 (Pin)</h3>
+                <p><strong>X Reaction:</strong> Summing Member X components:</p>
+                <p>$F_{x\_sum} = F_1(c=1) + F_2(c=0.55)$</p>
+                <p>$\qquad = 3.33 + (-6.01)(0.55) \approx 0$</p>
+                <p>$R_x = -(0) = \mathbf{0 \text{ kN}}$</p>
+                
+                <hr style="border-top:1px dashed #cbd5e1; margin:0.5rem 0;">
+                
+                <p><strong>Y Reaction:</strong> Summing Member Y components:</p>
+                <p>$F_{y\_sum} = F_1(s=0) + F_2(s=0.83)$</p>
+                <p>$\qquad = 0 + (-6.01)(0.83) = -5.0$</p>
+                <p>$R_y = -(-5.0) = \mathbf{+5.0 \text{ kN}}$ (Up)</p>
+            </div>
+            <div class="data-block">
+                <h3>Node 2 (Roller)</h3>
+                <p><strong>Y Reaction:</strong> Summing Member Y components:</p>
+                <p>$F_{y\_sum} = F_3(s=0.83)$</p>
+                <p>$\qquad = (-6.01)(0.83) = -5.0$</p>
+                <p>$R_y = -(-5.0) = \mathbf{+5.0 \text{ kN}}$ (Up)</p>
+            </div>
+        </div>
+    </div>
+    <script>
+        hljs.highlightAll();
+    </script>
+</body>
+</html>
