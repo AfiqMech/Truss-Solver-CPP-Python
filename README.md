@@ -2,8 +2,22 @@
 
 Welcome to **Truss Solver**! This tool helps you design, analyze, and visualize bridge structures.
 
-## 📦 How to Share & Install
-If you are giving this to a friend, simply verify they have this entire folder. They don't need to install anything complex, just **Python**.
+## 📦 How to Download from GitHub
+Anyone can get this project in two ways:
+
+### Option A: The Easy Way (Download ZIP)
+1.  Click the Green **"<> Code"** button at the top right of this page.
+2.  Select **"Download ZIP"**.
+3.  Extract the folder to your Desktop.
+
+### Option B: The Pro Way (Git Clone)
+If you have Git installed, open your terminal and run:
+```bash
+git clone https://github.com/AfiqMech/Truss-Solver-CPP-Python.git
+```
+
+## 🚀 How to Run
+Once you have the folder:
 
 ### 1. Prerequisites
 You must have Python installed on your computer.
