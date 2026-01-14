@@ -1,1 +1,5 @@
 include/** linguist-vendored
+include/Eigen/** linguist-vendored
+include/Eigen/**/* linguist-vendored
+*.h linguist-vendored
+*.hpp linguist-vendored
