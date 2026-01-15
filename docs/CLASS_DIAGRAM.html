@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Truss Solver - Data Structure Diagram</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; padding: 40px; display: flex; flex-direction: column; align-items: center; }
+        
+        h1 { margin-bottom: 40px; color: #333; }
+
+        .diagram-container {
+            position: relative;
+            width: 1000px;
+            height: 800px;
+            background: white;
+            border: 1px solid #ddd;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border-radius: 8px;
+        }
+
+        /* UML CLASS BOX STYLE */
+        .class-box {
+            position: absolute;
+            background-color: #f0fdf4; /* Light Green base */
+            border: 1px solid #16a34a;
+            border-radius: 4px;
+            width: 240px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            font-size: 0.85em;
+            overflow: hidden;
+        }
+
+        .class-header {
+            background-color: #86efac; /* Header Green */
+            padding: 8px;
+            text-align: center;
+            font-weight: bold;
+            border-bottom: 1px solid #16a34a;
+            color: #064e3b;
+        }
+
+        .class-body {
+            padding: 10px;
+            text-align: left;
+            line-height: 1.4;
+            color: #333;
+        }
+
+        .separator {
+            border-top: 1px solid #16a34a;
+            margin: 5px 0;
+        }
+
+        /* SPECIFIC BOX COLORS */
+        .cpp-struct { background-color: #eff6ff; border-color: #3b82f6; } /* Blue for C++ */
+        .cpp-header { background-color: #93c5fd; border-bottom-color: #3b82f6; color: #1e3a8a; }
+
+        .py-module { background-color: #fff7ed; border-color: #f97316; } /* Orange for Python */
+        .py-header { background-color: #fdba74; border-bottom-color: #f97316; color: #7c2d12; }
+
+        /* CONNECTOR LINES */
+        svg {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        line { stroke: #666; stroke-width: 2; }
+        .dashed { stroke-dasharray: 5,5; }
+        
+        /* LOCATIONS */
+        #node-struct { top: 50px; left: 50px; }
+        #beam-struct { top: 350px; left: 50px; }
+        #solver-logic { top: 200px; left: 400px; width: 280px; }
+        #python-ui { top: 200px; right: 50px; width: 220px; }
+        #json-file { top: 600px; left: 350px; width: 150px; background: #f3f4f6; border-color: #9ca3af; }
+
+    </style>
+</head>
+<body>
+
+    <h1>Data Entity & Logic Diagram</h1>
+
+    <div class="diagram-container">
+        
+        <!-- CONNECTORS (SVG) -->
+        <svg>
+            <!-- Node to Beam (Aggregation) -->
+            <line x1="170" y1="280" x2="170" y2="350" />
+            
+            <!-- Solver to Beam (Composition) -->
+            <line x1="400" y1="300" x2="290" y2="400" class="dashed" />
+
+            <!-- Solver to Node (Composition) -->
+            <line x1="400" y1="250" x2="290" y2="150" class="dashed" />
+
+            <!-- Python to Solver (Process Call) -->
+            <line x1="730" y1="300" x2="680" y2="300" />
+            
+            <!-- Solver to JSON -->
+            <line x1="540" y1="520" x2="425" y2="600" />
+        </svg>
+
+        <!-- C++ STRUCT: NODE -->
+        <div id="node-struct" class="class-box cpp-struct">
+            <div class="class-header cpp-header">Struct: Node</div>
+            <div class="class-body">
+                + id : int<br>
+                + x, y : double<br>
+                + isFixedX, isFixedY : bool<br>
+                + loadX, loadY : double<br>
+                <div class="separator"></div>
+                + displacementX : double<br>
+                + displacementY : double<br>
+                + reactionX : double<br>
+                + reactionY : double
+            </div>
+        </div>
+
+        <!-- C++ STRUCT: BEAM -->
+        <div id="beam-struct" class="class-box cpp-struct">
+            <div class="class-header cpp-header">Struct: Beam</div>
+            <div class="class-body">
+                + id : int<br>
+                + startNodeID : int<br>
+                + endNodeID : int<br>
+                + E, Area, Yield : double<br>
+                <div class="separator"></div>
+                + length : double<br>
+                + internalForce : double<br>
+                + stress : double<br>
+                + safetyFactor : double
+            </div>
+        </div>
+
+        <!-- C++ LOGIC: MAIN -->
+        <div id="solver-logic" class="class-box cpp-struct" style="height:320px;">
+            <div class="class-header cpp-header">C++ Logic (TrussSolver.cpp)</div>
+            <div class="class-body">
+                - allNodes : vector&lt;Node&gt;<br>
+                - allBeams : vector&lt;Beam&gt;<br>
+                - GlobalK : MatrixXd<br>
+                <div class="separator"></div>
+                <strong>Methods (Implicit in Main):</strong><br>
+                + readInput(cin) : void<br>
+                + assembleMatrix() : void<br>
+                + applyBoundaryConditions() : void<br>
+                + solveLU() : VectorXd<br>
+                + calcMemberForces() : void<br>
+                + writeOutput(cout) : void
+            </div>
+        </div>
+
+        <!-- PYTHON MODULE -->
+        <div id="python-ui" class="class-box py-module">
+            <div class="class-header py-header">Python Module (app.py)</div>
+            <div class="class-body">
+                - session_state : Dict<br>
+                - node_data : DataFrame<br>
+                - beam_data : DataFrame<br>
+                <div class="separator"></div>
+                + draw_bridge() : Figure<br>
+                + serialize_json() : File<br>
+                + run_subprocess() : Popen<br>
+                + parse_results() : Dict<br>
+                + render_dashboard() : void
+            </div>
+        </div>
+
+        <!-- JSON ARTIFACT -->
+        <div id="json-file" class="class-box" style="text-align:center; height:100px;">
+            <div class="class-header" style="background:#d1d5db; color:#374151;">JSON Interface</div>
+            <div class="class-body" style="text-align:center;">
+                input.json<br>
+                output.json
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>
