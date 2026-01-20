@@ -5,6 +5,7 @@ import json
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
+import platform
 
 # --- CONFIGURATION & PREMIUM DESIGN ---
 st.set_page_config(page_title="Truss Solver", layout="wide", initial_sidebar_state="expanded")
@@ -592,17 +593,34 @@ with col_results:
         if os.path.exists("data/output.json"): os.remove("data/output.json")
         st.rerun()
 
-    if run_btn and os.path.exists("truss_engine.exe"):
+    if run_btn:
         # State Sync: Save current edits back to session state before running
         st.session_state.node_data, st.session_state.beam_data, st.session_state.load_data = edited_nodes, edited_beams, edited_loads
-        with open("data/input.json") as f: inp = f.read()
-        p = subprocess.Popen([os.path.abspath("truss_engine.exe")], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        out, err = p.communicate(input=inp)
-        if p.returncode == 0:
-            with open("data/output.json", "w") as f: f.write(out)
-            st.toast("Success! 📊", icon="✅")
-            st.rerun()
-        else: st.error("Engine Error")
+        
+        # Determine Binary Path (Windows .exe vs Linux binary)
+        engine_bin = "truss_engine.exe" if platform.system() == "Windows" else "./truss_engine"
+        
+        # Auto-Compile Logic for Cloud (Linux) if binary is missing
+        if platform.system() == "Linux" and not os.path.exists(engine_bin):
+            with st.spinner("Compiling C++ Engine on Cloud..."):
+                try:
+                    subprocess.run(["make"], check=True)
+                    st.success("Engine Compiled Successfully!")
+                except Exception as e:
+                    st.error(f"Compilation Failed: {e}")
+                    st.stop()
+        
+        if os.path.exists(engine_bin):
+            with open("data/input.json") as f: inp = f.read()
+            p = subprocess.Popen([os.path.abspath(engine_bin)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            out, err = p.communicate(input=inp)
+            if p.returncode == 0:
+                with open("data/output.json", "w") as f: f.write(out)
+                st.toast("Success! 📊", icon="✅")
+                st.rerun()
+            else: st.error(f"Engine Error: {err}")
+        else:
+            st.error(f"Calculation Engine ({engine_bin}) not found. Please ensure it is compiled.")
 
     if os.path.exists("data/output.json"):
         try:
